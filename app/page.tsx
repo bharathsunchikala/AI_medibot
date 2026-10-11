@@ -40,8 +40,17 @@ declare global {
 
 type InputMode = "document" | "symptoms";
 type ExtractedReport = { fileName: string; text: string; pages?: number };
+type LabValue = {
+  name: string;
+  value: string;
+  unit: string;
+  referenceRange: string;
+  status: "within_range" | "high" | "low" | "unclear";
+  explanation: string;
+};
 type AnalysisResult = {
   summary: string;
+  labValues: LabValue[];
   observations: string[];
   questions: string[];
   disclaimer: string;
@@ -187,16 +196,20 @@ export default function Home() {
       await requestAnalysis(symptoms.trim(), []);
       return;
     }
+    if (!shareWithAi) {
+      setNotice("Please opt in to AI processing before submitting your report for review.");
+      return;
+    }
 
     setIsProcessing(true);
-    setNotice("Reading your report locally in this browser…");
+    setNotice("Reading your report locally, then preparing its AI review…");
     setExtractedReports([]);
     setAnalysisResult(null);
     try {
       const results: ExtractedReport[] = [];
       for (const file of files) results.push(await extractReport(file));
       setExtractedReports(results);
-      setNotice("Report text extracted locally. No file was uploaded.");
+      await requestAnalysis("", results.map((report) => report.text));
     } catch (error) {
       setNotice(
         error instanceof Error
@@ -215,7 +228,7 @@ export default function Home() {
     }
 
     setIsAnalyzing(true);
-    setNotice("Creating an informational summary…");
+    setNotice(mode === "document" ? "AI is reviewing the report values…" : "Creating an informational summary…");
     setAnalysisResult(null);
     try {
       const response = await fetch("/api/analyze", {
@@ -223,12 +236,21 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symptoms: symptomText, reports }),
       });
-      const data = (await response.json()) as AnalysisResult & { error?: string };
+      const data = (await response.json()) as Partial<AnalysisResult> & { error?: string };
       if (!response.ok) {
         throw new Error(data.error || "Could not create a summary. Please try again.");
       }
-      setAnalysisResult(data);
-      setNotice("Summary ready. Use it to prepare questions for a healthcare professional.");
+      if (
+        typeof data.summary !== "string" ||
+        !Array.isArray(data.labValues) ||
+        !Array.isArray(data.observations) ||
+        !Array.isArray(data.questions) ||
+        typeof data.disclaimer !== "string"
+      ) {
+        throw new Error("The AI returned an incomplete report review. Please try again.");
+      }
+      setAnalysisResult(data as AnalysisResult);
+      setNotice("Report review ready. Check every result against the original report and discuss it with your clinician.");
     } catch (error) {
       setNotice(
         error instanceof Error
@@ -324,7 +346,7 @@ export default function Home() {
                     <input ref={fileInput} type="file" accept=".pdf,.csv,application/pdf,text/csv" multiple hidden onChange={addFiles} aria-label="Choose health documents" />
                     <div className="upload-symbol"><Upload size={20} /></div>
                     <strong>Drop your files here, or <button className="text-button" type="button" onClick={() => fileInput.current?.click()}>browse</button></strong>
-                    <span>Text-based PDF or CSV <i>·</i> up to 5 files, 25 MB each</span>
+                    <span>Text-based PDF or CSV <i>·</i> up to 5 files, 25 MB each <i>·</i> image-only scans need OCR</span>
                     {files.length > 0 && <ul className="file-list">{files.map((file, index) => <li key={`${file.name}-${index}`}><FileText size={15} /><span>{file.name}</span><small>{(file.size / (1024 * 1024)).toFixed(1)} MB</small>                    <button aria-label={`Remove ${file.name}`} type="button" onClick={() => { setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index)); setExtractedReports([]); setAnalysisResult(null); }}><X size={15} /></button></li>)}</ul>}
                   </div>
                 ) : (
@@ -341,9 +363,9 @@ export default function Home() {
                     onChange={(event) => setShareWithAi(event.target.checked)}
                   />
                   <span>
-                    <strong>Allow an AI summary for this entry</strong>
+                    <strong>Allow AI to review this entry</strong>
                     <small>
-                      If selected, the text you submit is sent to OpenAI for processing. MediBot does not save it, but it leaves this browser. Avoid including names or other identifying details.
+                      Required to analyze. The report text is extracted in your browser and sent to OpenAI for processing. MediBot does not save it. Remove names and other identifying details if possible.
                     </small>
                   </span>
                 </label>
@@ -352,21 +374,38 @@ export default function Home() {
                 </p>
                 {notice && <p className="inline-notice" role="status">{notice}</p>}
                 <div className="intake-footer">
-                  <span className="local-note"><LockKeyhole size={14} /> {mode === "document" ? "Extracted locally first" : "AI summary is optional"}</span>
-                  <button type="button" className="primary-button" onClick={submitForReview} disabled={isProcessing || isAnalyzing}>{isProcessing ? "Reading report…" : isAnalyzing ? "Preparing summary…" : mode === "document" ? "Extract report text" : "Create AI summary"} {isProcessing || isAnalyzing ? <span className="button-spinner" /> : <ArrowRight size={16} />}</button>
+                  <span className="local-note"><LockKeyhole size={14} /> {mode === "document" ? "Extract locally, then analyze" : "AI summary is optional"}</span>
+                  <button type="button" className="primary-button" onClick={submitForReview} disabled={isProcessing || isAnalyzing}>{isAnalyzing ? "Analyzing report…" : isProcessing ? "Reading report…" : mode === "document" ? "Analyze report" : "Create AI summary"} {isProcessing || isAnalyzing ? <span className="button-spinner" /> : <ArrowRight size={16} />}</button>
                 </div>
               </section>
 
               {analysisResult && (
                 <section className="card analysis-card" aria-live="polite" aria-labelledby="analysis-title">
                   <div className="section-title-row">
-                    <div><div className="overline">AI-GENERATED INFORMATION</div><h2 id="analysis-title">A starting point for your care conversation</h2></div>
-                    <span className="local-badge"><Sparkles size={12} /> Not a diagnosis</span>
+                    <div><div className="overline">AI REPORT REVIEW</div><h2 id="analysis-title">Your report, explained</h2></div>
+                    <span className="local-badge"><Sparkles size={12} /> Educational only</span>
                   </div>
                   <p className="analysis-summary">{analysisResult.summary}</p>
+                  {analysisResult.labValues.length > 0 ? (
+                    <div className="lab-table-wrap">
+                      <table className="lab-table">
+                        <thead><tr><th>Test</th><th>Your result</th><th>Report range</th><th>Comparison</th></tr></thead>
+                        <tbody>{analysisResult.labValues.map((lab, index) => (
+                          <tr key={`${lab.name}-${index}`}>
+                            <th scope="row">{lab.name}</th>
+                            <td>{lab.value}{lab.unit ? ` ${lab.unit}` : ""}</td>
+                            <td>{lab.referenceRange || "Not provided"}</td>
+                            <td><span className={`lab-status ${lab.status}`}>{lab.status === "within_range" ? "Within range" : lab.status === "high" ? "Above range" : lab.status === "low" ? "Below range" : "Unclear"}</span><small className="lab-explanation">{lab.explanation}</small></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="no-labs-notice">No lab values could be confidently identified in the extracted text. The report may be scanned, hard to read, or may not include clearly labeled test results. Check the original report; scanned-image OCR is not available yet.</p>
+                  )}
                   {analysisResult.observations.length > 0 && (
                     <div className="analysis-section">
-                      <h3>What stands out</h3>
+                      <h3>Notes about the report</h3>
                       <ul>{analysisResult.observations.map((observation, index) => <li key={index}>{observation}</li>)}</ul>
                     </div>
                   )}
@@ -378,31 +417,6 @@ export default function Home() {
                   )}
                   <p className="analysis-disclaimer">{analysisResult.disclaimer}</p>
                   <button type="button" className="outline-button" onClick={exportReport}><ArrowDownToLine size={15} /> Print summary</button>
-                </section>
-              )}
-
-              {extractedReports.length > 0 && (
-                <section className="card extraction-card" aria-live="polite">
-                  <div className="section-title-row">
-                    <div><div className="overline">LOCAL EXTRACTION PREVIEW</div><h2>Report text</h2></div>
-                    <span className="local-badge"><LockKeyhole size={12} /> Stays on this device</span>
-                  </div>
-                  <p className="extraction-caveat">Review this text for errors before submitting it to AI. Selecting Create AI summary sends the extracted text to OpenAI.</p>
-                  <button
-                    type="button"
-                    className="primary-button analysis-action"
-                    disabled={isAnalyzing}
-                    onClick={() => requestAnalysis("", extractedReports.map((report) => report.text))}
-                  >
-                    {isAnalyzing ? "Preparing summary…" : "Create AI summary"} {isAnalyzing ? <span className="button-spinner" /> : <Sparkles size={15} />}
-                  </button>
-                  {extractedReports.map((report) => (
-                    <div className="extracted-report" key={report.fileName}>
-                      <div className="extracted-title"><FileText size={15} /><strong>{report.fileName}</strong>{report.pages && <span>{report.pages} pages</span>}</div>
-                      <pre>{report.text}</pre>
-                    </div>
-                  ))}
-                  <p className="extraction-caveat">This is extracted source text, not a medical interpretation. Check it against the original report. Scanned/image-only PDFs and image OCR are not supported yet.</p>
                 </section>
               )}
 

@@ -195,6 +195,20 @@ h1 span{color:#54836c}
 .safety-notice{margin:10px 0 0;padding:9px 11px;border-left:2px solid #c89b52;background:#fbf8f0;color:#756b53;font-size:9px;line-height:1.55}
 @media(max-width:560px){.analysis-card{padding:16px 14px}.ai-consent{padding:10px}.ai-consent small{font-size:8px}}
 @media print{.analysis-action,.ai-consent{display:none!important}}
+.lab-table-wrap{width:100%;margin-top:15px;overflow-x:auto;border:1px solid #e9eeeb;border-radius:9px}
+.lab-table{width:100%;border-collapse:collapse;text-align:left;font-size:10px}
+.lab-table th,.lab-table td{padding:11px 10px;vertical-align:top;border-bottom:1px solid #eef1ef}
+.lab-table thead th{background:#f8faf8;color:#75827a;font-weight:600;white-space:nowrap}
+.lab-table tbody th{min-width:125px;color:#4b5d53;font-weight:600}
+.lab-table tbody td{min-width:90px;color:#68776e;line-height:1.5}
+.lab-table tbody tr:last-child th,.lab-table tbody tr:last-child td{border-bottom:0}
+.lab-status{display:inline-flex;padding:4px 6px;border-radius:5px;background:#f0f3f1;color:#68766e;font-size:9px;font-weight:600;white-space:nowrap}
+.lab-status.within_range{background:#edf6ef;color:#4f8060}
+.lab-status.high{background:#fbefec;color:#aa5c4e}
+.lab-status.low{background:#fff6e6;color:#987333}
+.lab-explanation{display:block;max-width:230px;margin-top:5px;color:#87928c;font-size:9px;line-height:1.5}
+.no-labs-notice{margin:15px 0 0;padding:12px;border:1px solid #eee8d9;border-radius:7px;background:#fbf8f0;color:#756b53;font-size:10px;line-height:1.6}
+@media(max-width:560px){.lab-table{min-width:600px}.lab-table th,.lab-table td{padding:9px 8px}}
 .mobile-backdrop{display:none}
 @media(max-width:560px){
   .sidebar.mobile-open{display:flex;align-items:stretch;width:248px;box-shadow:8px 0 30px #152a201f}

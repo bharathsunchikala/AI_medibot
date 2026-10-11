@@ -6,12 +6,13 @@
 
 MediBot is a responsive web application prototype exploring how people could bring health documents and personal questions together in one approachable workspace. It pairs a premium, accessible dashboard with a report intake flow, a browser-based text extraction preview, and guided next steps for preparing to speak with a care provider.
 
-MediBot can create an optional, AI-generated informational summary of symptom text or extracted text from a report. It is **not a medical analysis service**: it does not diagnose, prescribe, or determine whether it is safe to delay care. Text-based PDFs and CSV files are extracted in the browser first. AI analysis is off until the user opts in, and submitted text is sent to OpenAI for processing. The app does not save reports or AI requests.
+MediBot can create an optional, AI-generated informational summary of symptom text or extracted text from a report. Report reviews can show values the model identifies and compare them only with reference ranges explicitly present in the report. It is **not a medical analysis service**: it does not diagnose, prescribe, or determine whether it is safe to delay care. Text-based PDFs and CSV files are extracted in the browser first. AI analysis is off until the user opts in, and submitted text is sent to OpenAI for processing. The app does not save reports or AI requests.
 
 ## What you can try
 
-- **Add a report:** Select or drag in up to five text-based PDF or CSV files (maximum 25 MB each). PDF text is extracted in the browser and displayed as a preview; CSV content is shown as text.
-- **Create an AI summary:** Explicitly opt in to send your symptom description or extracted text to OpenAI. The summary provides general observations and questions to discuss with a healthcare professional. Review extracted text before choosing to send it.
+- **Analyze a report:** Select up to five text-based PDF or CSV files (maximum 25 MB each), explicitly opt in, then choose **Analyze report**. Text is extracted in the browser and sent to OpenAI for review; the raw extracted text is not shown by default.
+- **Review values:** The AI attempts to identify values and compare them only with reference intervals present in the report. It can misread, omit, or misclassify results; verify every row against the original report and your clinician.
+- **Create an AI summary:** In symptom mode, explicitly opt in to send your description to OpenAI. The summary offers general information and questions to discuss with a healthcare professional.
 - **Describe a concern:** Enter a symptom note or try browser-supported voice input. Voice recognition depends on browser support.
 - **Review the workspace:** The selected-report list reflects files added in the current browser session only; it is not a saved report library.
 - **Choose whether to share location:** The provider-discovery card requests browser location permission only after you choose it. Provider search is not connected.
@@ -95,7 +96,7 @@ npm audit
 
 - PDF extraction reads selectable text only; it does not perform OCR.
 - CSV is presented as source text; there is no clinical variable parsing or terminology mapping.
-- Report content is not normalized to medical codes or compared against validated reference intervals. An AI summary may be wrong and must not guide treatment decisions.
+- Report content is not normalized to medical codes or compared against independently validated reference intervals. AI-extracted values may be wrong and must not guide treatment decisions.
 - There is no LangChain integration, RAG, approved knowledge corpus, vector database, source citations, or persistent chat/conversation memory.
 - There is no production rate limiter or authentication; do not expose this prototype as a healthcare service or send real patient information.
 - Provider search, appointment booking, secure sharing, authentication, audit logging, and data-deletion services are not implemented.
