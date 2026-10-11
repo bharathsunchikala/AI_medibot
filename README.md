@@ -33,6 +33,25 @@ MediBot can create an optional, AI-generated informational summary of symptom te
 - Custom responsive CSS
 - [Lucide](https://lucide.dev/) icons
 - [PDF.js](https://mozilla.github.io/pdf.js/) for in-browser extraction of selectable PDF text
+- OpenAI Chat Completions API, called from a Next.js server route when the user explicitly opts in
+
+## Current architecture and data flow
+
+```mermaid
+flowchart LR
+    Browser["Next.js UI<br/>PDF/CSV extracted locally"] -->|"Only after explicit consent:<br/>symptoms / extracted text"| Route["POST /api/analyze<br/>input size + schema checks"]
+    Route -->|"Server-side API key"| OpenAI["OpenAI Chat Completions"]
+    OpenAI -->|"Unverified short summary"| Browser
+    Browser -->|"GET"| Health["GET /api/health<br/>configuration status only"]
+```
+
+The deployed app is a single Next.js service. There is no separate Python backend, LangChain pipeline, approved reference corpus, embeddings, vector store, authentication, persistent conversation store, or medical knowledge ingestion workflow. Therefore the current OpenAI feature summarizes only the user-provided text; it is **not RAG** and has no source citations. Do not use it as a diagnostic or treatment tool.
+
+### API
+
+- `GET /api/health` reports service status and whether `OPENAI_API_KEY` is configured; it does not expose the secret.
+- `POST /api/analyze` accepts JSON such as `{"symptoms":"...","reports":["..."]}`. Input is bounded and requires the user to opt in at the UI. Returns a short summary, observations, questions, or a sanitized error. The API key remains server-side.
+- `GET /api/analyze` is not supported (405).
 
 ## Run locally
 
@@ -54,6 +73,14 @@ Keep `.env.local` private; do not commit it or prefix the key with `NEXT_PUBLIC_
 
 On Render, add `OPENAI_API_KEY` as a secret environment variable in the service settings. `OPENAI_MODEL` is optional; if omitted the app uses `gpt-4o-mini`. Redeploy after saving the variables.
 
+Render settings for this Next.js service:
+
+- Build command: `npm install && npm run build`
+- Start command: `npm run start`
+- Health check path (if enabled): `/api/health`
+- Required secret: `OPENAI_API_KEY`
+- Optional variable: `OPENAI_MODEL` (defaults to `gpt-4o-mini`)
+
 Open [http://localhost:3000](http://localhost:3000). If port 3000 is already in use, Next.js will report the alternate local port it selected.
 
 ## Quality checks
@@ -69,8 +96,23 @@ npm audit
 - PDF extraction reads selectable text only; it does not perform OCR.
 - CSV is presented as source text; there is no clinical variable parsing or terminology mapping.
 - Report content is not normalized to medical codes or compared against validated reference intervals. An AI summary may be wrong and must not guide treatment decisions.
+- There is no LangChain integration, RAG, approved knowledge corpus, vector database, source citations, or persistent chat/conversation memory.
+- There is no production rate limiter or authentication; do not expose this prototype as a healthcare service or send real patient information.
 - Provider search, appointment booking, secure sharing, authentication, audit logging, and data-deletion services are not implemented.
 - The session report list is not persistent.
+
+## RAG prerequisites and next architecture step
+
+A grounded RAG release must first select an approved, maintained medical reference corpus and a persistent vector store (for example, managed PostgreSQL with pgvector). Render needs persistent database credentials; model and embedding API keys must be server-side. The ingestion flow must be administrator-authorized, deduplicate/version sources, retain page/source metadata, and expose citations only for retrieved chunks. Conversation history must remain ephemeral until authentication and per-user isolation exist. None of these external resources or credentials are currently configured, so they are not represented as working features here.
+
+## Troubleshooting
+
+- **AI setup message:** Add `OPENAI_API_KEY` to Render environment variables and redeploy. Verify `GET /api/health` returns `"aiConfigured": true`.
+- **Invalid-key response:** Replace the Render secret with a valid key for an enabled OpenAI project; do not put it in client code or commit it.
+- **Rate-limited response:** Check provider usage and account limits, then retry later.
+- **PDF has no selectable text:** It is likely image-only; OCR is not configured.
+- **AI response is unavailable:** Review the public service status and Render logs for startup/provider errors. Do not log or paste report text or secrets into logs/issues.
+- **No answer sources:** This version does not perform retrieval and cannot provide knowledge-base citations.
 
 ## Direction for a production service
 

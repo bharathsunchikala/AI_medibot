@@ -4,12 +4,9 @@ import {
   Activity,
   ArrowDownToLine,
   ArrowRight,
-  AudioLines,
   CalendarDays,
   Check,
-  ChevronDown,
   CircleHelp,
-  Clock3,
   FileHeart,
   FileText,
   Heart,
@@ -18,9 +15,7 @@ import {
   MapPin,
   Menu,
   Mic,
-  MoreHorizontal,
   Plus,
-  Search,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -65,6 +60,7 @@ export default function Home() {
   const [shareWithAi, setShareWithAi] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   function appendFiles(selected: File[]) {
@@ -250,17 +246,17 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <aside className="sidebar" aria-label="Main navigation">
+      <aside id="main-navigation" className={mobileMenuOpen ? "sidebar mobile-open" : "sidebar"} aria-label="Main navigation">
         <a className="brand" href="#" aria-label="MediBot home">
           <span className="brand-mark"><HeartPulse size={21} strokeWidth={2.3} /></span>
           <span>Medi<span>Bot</span></span>
         </a>
         <div className="workspace-label">WORKSPACE</div>
         <nav className="nav-list">
-          <a className="nav-item active" href="#overview"><Activity size={18} /> Overview</a>
-          <a className="nav-item" href="#reports"><FileHeart size={18} /> My reports <span className="nav-count">{files.length}</span></a>
-          <a className="nav-item" href="#care"><Stethoscope size={18} /> Find care</a>
-          <a className="nav-item" href="#appointments"><CalendarDays size={18} /> Appointments</a>
+          <a className="nav-item active" href="#overview" onClick={() => setMobileMenuOpen(false)}><Activity size={18} /> Overview</a>
+          <a className="nav-item" href="#reports" onClick={() => setMobileMenuOpen(false)}><FileHeart size={18} /> My reports <span className="nav-count">{files.length}</span></a>
+          <a className="nav-item" href="#care" onClick={() => setMobileMenuOpen(false)}><Stethoscope size={18} /> Find care</a>
+          <a className="nav-item" href="#appointments" onClick={() => setMobileMenuOpen(false)}><CalendarDays size={18} /> Visit preparation</a>
         </nav>
         <div className="sidebar-spacer" />
         <div className="privacy-card">
@@ -269,22 +265,22 @@ export default function Home() {
           <p>Your information should only be used with your permission.</p>
           <a href="#privacy">Privacy settings <ArrowRight size={13} /></a>
         </div>
-        <button className="profile-button" type="button">
-          <span className="avatar">JD</span>
-          <span className="profile-copy"><strong>Jamie Davis</strong><small>Personal account</small></span>
-          <MoreHorizontal size={18} className="profile-more" />
-        </button>
+        <div className="profile-button" aria-label="Temporary guest session">
+          <span className="avatar">G</span>
+          <span className="profile-copy"><strong>Guest session</strong><small>Not signed in</small></span>
+        </div>
       </aside>
 
       <div className="main-column">
         <header className="topbar">
-          <button className="mobile-menu icon-button" aria-label="Open menu" type="button"><Menu size={20} /></button>
+          <button className="mobile-menu icon-button" aria-label={mobileMenuOpen ? "Close menu" : "Open menu"} aria-expanded={mobileMenuOpen} aria-controls="main-navigation" type="button" onClick={() => setMobileMenuOpen((open) => !open)}>{mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}</button>
           <div className="breadcrumb">Workspace <span>/</span> <strong>Overview</strong></div>
           <div className="topbar-actions">
-            <span className="secure-label"><LockKeyhole size={13} /> Private workspace</span>
-            <button className="icon-button help-button" aria-label="Help" type="button"><CircleHelp size={19} /></button>
+            <span className="secure-label"><LockKeyhole size={13} /> Session-only workspace</span>
+            <a className="icon-button help-button" aria-label="Help and privacy information" href="#privacy"><CircleHelp size={19} /></a>
           </div>
         </header>
+        {mobileMenuOpen && <button type="button" className="mobile-backdrop" aria-label="Close navigation menu" onClick={() => setMobileMenuOpen(false)} />}
 
         <div className="content">
           <section className="welcome-row" id="overview">
@@ -431,7 +427,7 @@ export default function Home() {
             </div>
 
             <aside className="secondary-column">
-              <section className="card next-step-card">
+              <section className="card next-step-card" id="appointments">
                 <div className="section-title-row compact">
                   <div><div className="overline">YOUR NEXT STEP</div><h2>Make the most of your visit</h2></div>
                   <span className="step-icon small"><CalendarDays size={16} /></span>
@@ -452,7 +448,7 @@ export default function Home() {
                   <div className="overline light">CARE, CLOSER TO YOU</div>
                   <h2>Looking for a<br />care provider?</h2>
                   <p>Location sharing is optional. MediBot does not yet connect to a provider directory.</p>
-                  <button type="button" className="care-button" onClick={requestLocation}><Search size={15} /> {locationEnabled ? "Location shared" : "Explore nearby care"} <ArrowRight size={14} /></button>
+                  <button type="button" className="care-button" onClick={requestLocation}><MapPin size={15} /> {locationEnabled ? "Location access allowed" : "Allow location access"} <ArrowRight size={14} /></button>
                   {locationStatus && <p className="location-status" role="status">{locationStatus}</p>}
                   {locationEnabled && <p className="demo-caption light-caption">Permission was granted, but no location or provider details are stored or searched.</p>}
                 </div>
@@ -461,14 +457,13 @@ export default function Home() {
               <section className="trust-note" id="privacy">
                 <span><ShieldCheck size={17} /></span>
                 <p><strong>Your privacy matters.</strong> Your health information belongs to you. Review how it’s used, stored, and shared before connecting any services.</p>
-                <button aria-label="Learn more about privacy" type="button"><ArrowRight size={15} /></button>
               </section>
             </aside>
           </section>
 
           <footer className="page-footer">
             <span><LockKeyhole size={12} /> Designed with privacy in mind</span>
-            <span>© 2026 MediBot <i>·</i> <a href="#privacy">Privacy</a> <i>·</i> <a href="#privacy">Terms</a></span>
+            <span>© 2026 MediBot <i>·</i> <a href="#privacy">Privacy information</a></span>
           </footer>
         </div>
       </div>

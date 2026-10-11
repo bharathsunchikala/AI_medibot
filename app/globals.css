@@ -26,7 +26,7 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #8
 .privacy-card strong{display:block;font-size:12px;color:#43564e}
 .privacy-card p{font-size:11px;line-height:1.55;color:#88938e;margin:6px 0 11px}
 .privacy-card a{display:flex;align-items:center;gap:5px;color:#4b896f;font-size:11px;font-weight:600}
-.profile-button{border:0;border-top:1px solid var(--line);padding:16px 5px 0;background:transparent;display:flex;align-items:center;text-align:left;gap:10px;cursor:pointer}
+.profile-button{border:0;border-top:1px solid var(--line);padding:16px 5px 0;background:transparent;display:flex;align-items:center;text-align:left;gap:10px;cursor:default}
 .avatar{display:grid;place-items:center;width:35px;height:35px;border-radius:50%;background:#efe9df;color:#7b6650;font-weight:700;font-size:11px}
 .profile-copy{display:grid;gap:3px}
 .profile-copy strong{font-size:11px}
@@ -195,3 +195,15 @@ h1 span{color:#54836c}
 .safety-notice{margin:10px 0 0;padding:9px 11px;border-left:2px solid #c89b52;background:#fbf8f0;color:#756b53;font-size:9px;line-height:1.55}
 @media(max-width:560px){.analysis-card{padding:16px 14px}.ai-consent{padding:10px}.ai-consent small{font-size:8px}}
 @media print{.analysis-action,.ai-consent{display:none!important}}
+.mobile-backdrop{display:none}
+@media(max-width:560px){
+  .sidebar.mobile-open{display:flex;align-items:stretch;width:248px;box-shadow:8px 0 30px #152a201f}
+  .sidebar.mobile-open .brand>span:last-child{display:inline}
+  .sidebar.mobile-open .workspace-label{display:block}
+  .sidebar.mobile-open .nav-item:not(.active),.sidebar.mobile-open .nav-item.active{justify-content:flex-start;width:auto;margin:0;padding:0 11px;font-size:13px}
+  .sidebar.mobile-open .nav-count,.sidebar.mobile-open .privacy-card,.sidebar.mobile-open .profile-copy{display:block}
+  .sidebar.mobile-open .privacy-card{display:block}
+  .sidebar.mobile-open .profile-button{justify-content:flex-start;padding:14px 5px 0}
+  .sidebar.mobile-open .profile-more{display:none}
+  .mobile-backdrop{display:block;position:fixed;inset:0;z-index:2;border:0;background:#17251e55}
+}

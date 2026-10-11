@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 const MAX_SYMPTOM_LENGTH = 3_000;
 const MAX_REPORT_LENGTH = 15_000;
 const MAX_TOTAL_LENGTH = 15_000;
+const MAX_REQUEST_BYTES = 20_000;
 
 type AnalysisInput = {
   symptoms?: unknown;
@@ -16,6 +17,26 @@ function errorResponse(message: string, status: number) {
 }
 
 export async function POST(request: Request) {
+  const contentType = request.headers.get("content-type") || "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return errorResponse("Content-Type must be application/json.", 415);
+  }
+
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > MAX_REQUEST_BYTES) {
+    return errorResponse("Request body is too large.", 413);
+  }
+
+  let requestText: string;
+  try {
+    requestText = await request.text();
+  } catch {
+    return errorResponse("Could not read request body.", 400);
+  }
+  if (new TextEncoder().encode(requestText).byteLength > MAX_REQUEST_BYTES) {
+    return errorResponse("Request body is too large.", 413);
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return errorResponse(
@@ -26,7 +47,11 @@ export async function POST(request: Request) {
 
   let body: AnalysisInput;
   try {
-    body = (await request.json()) as AnalysisInput;
+    const parsed: unknown = JSON.parse(requestText);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return errorResponse("Request body must be a JSON object.", 400);
+    }
+    body = parsed as AnalysisInput;
   } catch {
     return errorResponse("Request body must be valid JSON.", 400);
   }
